@@ -2,7 +2,7 @@ import math
 import cv2
 import scipy.spatial.distance
 import numpy as np
-
+dst=0
 img = cv2.imread('home.png')
 (rows,cols,_) = img.shape
 cv2.imshow('img',img)
@@ -10,18 +10,14 @@ p = []
 d = []
 W = 0
 H = 0
-def disMouse(event, x, y, flags, param):
-    if event == cv2.EVENT_LBUTTONDOWN and len(d)>=2:
-        l = input("Podaj: ")
-        result = np.sqrt((d[0][0]-d[1][0])**2+(d[0][1]-d[1][1])**2)/float(l)
-        print(result*H)
-        print(result*W)
-    elif event == cv2.EVENT_LBUTTONDOWN:
-        d.append((x,y))
+
 
 def onMouse(event, x, y, flags, param):
-   global W, H
-   if len(p)>=4 and event == cv2.EVENT_LBUTTONDOWN:
+    global img, dst
+    cv2.imshow('img',img)
+    
+    global W, H
+    if len(p)>=4 and event == cv2.EVENT_LBUTTONDOWN:
         #image center
         print(p)
         p.sort()
@@ -39,16 +35,16 @@ def onMouse(event, x, y, flags, param):
 
         w = max(w1,w2)
         h = max(h1,h2)
-        #visible aspect ratio
+            #visible aspect ratio
         ar_vis = float(w)/float(h)
 
-        #make numpy arrays and append 1 for linear algebra
+            #make numpy arrays and append 1 for linear algebra
         m1 = np.array((p[0][0],p[0][1],1)).astype('float32')
         m2 = np.array((p[1][0],p[1][1],1)).astype('float32')
         m3 = np.array((p[2][0],p[2][1],1)).astype('float32')
         m4 = np.array((p[3][0],p[3][1],1)).astype('float32')
 
-        #calculate the focal disrance
+            #calculate the focal disrance
         k2 = np.dot(np.cross(m1,m4),m3) / np.dot(np.cross(m2,m4),m3) #11
         k3 = np.dot(np.cross(m1,m4),m2) / np.dot(np.cross(m3,m4),m2) #12
 
@@ -93,9 +89,20 @@ def onMouse(event, x, y, flags, param):
 
         cv2.imwrite('orig.png',img)
         cv2.imwrite('proj.png',dst)
-   elif event == cv2.EVENT_LBUTTONDOWN:
+    elif event == cv2.EVENT_LBUTTONDOWN:
+        cv2.circle(img,(x,y),10,(255,0,0),-1)
         p.append((x, y))
 
+def disMouse(event, x, y, flags, param):
+    cv2.imshow('dst',dst)
+    if event == cv2.EVENT_LBUTTONDOWN and len(d)>=2:
+        l = input("Podaj: ")
+        result = np.sqrt((d[0][0]-d[1][0])**2+(d[0][1]-d[1][1])**2)/float(l)
+        print(result*H)
+        print(result*W)
+    elif event == cv2.EVENT_LBUTTONDOWN:
+        cv2.circle(dst,(x,y),3,(255,0,0),-1)
+        d.append((x,y))
     
 cv2.setMouseCallback('img', onMouse)
 cv2.waitKey(0)
