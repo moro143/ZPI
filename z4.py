@@ -100,14 +100,15 @@ def calculate(pts):
 
     pts1 = np.array(pts).astype('float32')
     pts2 = np.float32([[0,0],[W,0],[0,H],[W,H]])
-
     M = cv2.getPerspectiveTransform(pts1,pts2)
-    return M, W, H
+    return M, W, H, pts1, pts2
 cv2.setMouseCallback('img', add_p)
 cv2.waitKey(0)
+cv2.destroyAllWindows()
 
 
-M , W, H = calculate(p)
+M , W, H, pts1, pts2 = calculate(p)
+M = cv2.getPerspectiveTransform(pts1,pts2)
 dst = cv2.warpPerspective(img ,M, (W,H))
 
 cv2.imshow('dst',dst)
@@ -116,8 +117,50 @@ cv2.setMouseCallback('dst', disMouse)
 #cv2.imwrite('proj.png',dst)
 
 cv2.waitKey(0)
+cv2.destroyAllWindows()
 
 l = input("Wymiar: ")
 result = float(l)/np.sqrt((d[0][0]-d[1][0])**2+(d[0][1]-d[1][1])**2)
-print(result*H)
-print(result*W)
+roof_height = result*H
+roof_width = result*W
+
+
+from sqrs import numer_sqrs
+
+panel_poziomo = 195.6
+panel_pionowo = 99.2
+odstep = 2
+ip1, ip2 = numer_sqrs((roof_width, roof_height), (panel_poziomo, panel_pionowo), odstep)
+
+img = cv2.imread('home.png')
+dst = cv2.warpPerspective(img ,M, (W,H))
+x = cv2.imread('BLUE.jpg')
+
+xx, yy = int(panel_pionowo/result), int(panel_poziomo/result)
+
+y = cv2.resize(x, (xx,yy))
+print(ip1, ip2)
+for i in range(ip2):
+    for j in range(ip1):
+        dst[i*y.shape[0]:i*y.shape[0]+y.shape[0], j*y.shape[1]:(j+1)*y.shape[1]] = y
+
+cv2.imshow('TEST',dst)
+M = cv2.getPerspectiveTransform(pts2,pts1)
+test_2 = cv2.warpPerspective(dst , M, (img.shape[1],img.shape[0]))
+cv2.resize(img, (img.shape[1],img.shape[0]))
+cv2.imshow('test_2', test_2)
+cv2.imshow('i',img)
+cv2.waitKey(0)
+
+for i in range(len(test_2)):
+    for j in range(len(test_2[i])):
+        c = 0
+        for k in range(len(test_2[i][j])):
+            if test_2[i][j][k]==0:
+                c+=1
+        if c!=3:
+            img[i][j]=test_2[i][j]
+
+cv2.imshow('ii', img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
