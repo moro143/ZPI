@@ -3,8 +3,16 @@ import cv2
 import scipy.spatial.distance
 import numpy as np
 
+panel_pionowo = 168.9
+panel_poziomo = 99.6
+odstep = 2
+home = 'home.png'
+#panel = 'BLUE.jpg'
+#panel = 'ja.png'
+panel = 'eco.png'
+#panel = 'a.jfif'
 
-img = cv2.imread('home.png')  ## <--  wczytanie zdjęcia 
+img = cv2.imread(home)  ## <--  wczytanie zdjęcia 
 
 (rows,cols,_) = img.shape
 cv2.imshow('img',img)
@@ -13,15 +21,6 @@ p = []
 d = []
 W = 0
 H = 0
-
-def xinmin(x, lista, p=0):
-    temp = []
-    for i in lista:
-        temp.append(i[p])
-    temp.sort()
-    if x in temp[:2]:
-        return True
-    return False
 
 def disMouse(event, x, y, flags, param):
     cv2.imshow('dst',dst)
@@ -37,15 +36,24 @@ def add_p(event, x, y, flags, param):
 
 def calculate(pts):
     temp = [0,0,0,0]
+    print(pts)
+    t = (10000,10000)
     for i in pts:
-        if xinmin(i[0], pts, 0) and xinmin(i[1], pts, 1):
-            temp[0] = i
-        elif xinmin(i[0], pts, 0) and not xinmin(i[1], pts, 1):
-            temp[2] = i
-        elif not xinmin(i[0], pts, 0) and xinmin(i[1], pts, 1):
-            temp[1] = i
-        elif not xinmin(i[0], pts, 0) and not xinmin(i[1], pts, 1):
-            temp[3] = i
+        if i[1]<t[1]:
+            t = i
+    temp[0] = t
+    for i in pts:
+        if t[0]<i[0]:
+            t = i
+    temp[1] = t
+    for i in pts:
+        if i not in temp and i[0]<t[0]:
+            t = i
+    temp[2] = t
+    for i in pts:
+        if i not in temp:
+            t=i
+    temp[3] = t
     pts = temp
     u0 = (cols)/2.0
     v0 = (rows)/2.0
@@ -60,7 +68,7 @@ def calculate(pts):
     h = max(h1,h2)
 
     ar_vis = float(w)/float(h)
-
+    print(pts)
     m1 = np.array((pts[0][0],pts[0][1],1)).astype('float32')
     m2 = np.array((pts[1][0],pts[1][1],1)).astype('float32')
     m3 = np.array((pts[2][0],pts[2][1],1)).astype('float32')
@@ -125,42 +133,57 @@ roof_height = result*H
 roof_width = result*W
 
 
-from sqrs import numer_sqrs
 
-panel_poziomo = 195.6
-panel_pionowo = 99.2
-odstep = 2
-ip1, ip2 = numer_sqrs((roof_width, roof_height), (panel_poziomo, panel_pionowo), odstep)
+import math
 
-img = cv2.imread('home.png')
+ip1 = math.floor(roof_width / (panel_poziomo+odstep))
+ip2 = math.floor(roof_height / (panel_pionowo + odstep))
+
+img = cv2.imread(home)
 dst = cv2.warpPerspective(img ,M, (W,H))
-x = cv2.imread('BLUE.jpg')
+x = cv2.imread(panel)
 
-xx, yy = int(panel_pionowo/result), int(panel_poziomo/result)
+xx, yy = int(panel_poziomo/result), int(panel_pionowo/result)
 
 y = cv2.resize(x, (xx,yy))
-print(ip1, ip2)
+
 for i in range(ip2):
     for j in range(ip1):
-        dst[i*y.shape[0]:i*y.shape[0]+y.shape[0], j*y.shape[1]:(j+1)*y.shape[1]] = y
+        dst[i*y.shape[0]+i*odstep:i*y.shape[0]+y.shape[0]+i*odstep, j*y.shape[1]+j*odstep:(j+1)*y.shape[1]+j*odstep] = y
 
-cv2.imshow('TEST',dst)
-M = cv2.getPerspectiveTransform(pts2,pts1)
-test_2 = cv2.warpPerspective(dst , M, (img.shape[1],img.shape[0]))
+M1 = cv2.getPerspectiveTransform(pts2,pts1)
+test_2 = cv2.warpPerspective(dst , M1, (img.shape[1],img.shape[0]))
 cv2.resize(img, (img.shape[1],img.shape[0]))
-cv2.imshow('test_2', test_2)
-cv2.imshow('i',img)
-cv2.waitKey(0)
 
-for i in range(len(test_2)):
-    for j in range(len(test_2[i])):
-        c = 0
-        for k in range(len(test_2[i][j])):
-            if test_2[i][j][k]==0:
-                c+=1
-        if c!=3:
-            img[i][j]=test_2[i][j]
+test_3 = cv2.addWeighted(img,1,test_2,-255,0)
+test_4 = cv2.addWeighted(test_3,1, test_2,1,0)
+cv2.imshow('test_4', test_4)
 
-cv2.imshow('ii', img)
+################################################################################################################################
+
+panel_pionowo, panel_poziomo = panel_poziomo, panel_pionowo
+ip1 = math.floor(roof_width / (panel_poziomo+odstep))
+ip2 = math.floor(roof_height / (panel_pionowo+odstep))
+
+img = cv2.imread(home)
+dst = cv2.warpPerspective(img ,M, (W,H))
+x = cv2.imread(panel)
+x = cv2.rotate(x, cv2.cv2.ROTATE_90_CLOCKWISE)
+
+xx, yy = int(panel_poziomo/result), int(panel_pionowo/result)
+
+y = cv2.resize(x, (xx,yy))
+for i in range(ip2):
+    for j in range(ip1):
+        dst[i*y.shape[0]+i*odstep:i*y.shape[0]+y.shape[0]+i*odstep, j*y.shape[1]+j*odstep:(j+1)*y.shape[1]+j*odstep] = y
+
+M1 = cv2.getPerspectiveTransform(pts2,pts1)
+test_5 = cv2.warpPerspective(dst , M1, (img.shape[1],img.shape[0]))
+cv2.resize(img, (img.shape[1],img.shape[0]))
+
+test_6 = cv2.addWeighted(img,1,test_5,-255,0)
+test_7 = cv2.addWeighted(test_6,1, test_5,1,0)
+cv2.imshow('test_7', test_7)
+
 cv2.waitKey(0)
 cv2.destroyAllWindows()
