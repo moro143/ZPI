@@ -3,13 +3,13 @@ import cv2
 import scipy.spatial.distance
 import numpy as np
 
-panel_pionowo = 168.9
-panel_poziomo = 99.6
+panel_pionowo = 195.6
+panel_poziomo = 99.2
 odstep = 2
 home = 'home.png'
 #panel = 'BLUE.jpg'
-#panel = 'ja.png'
-panel = 'eco.png'
+panel = 'ja.png'
+#panel = 'eco.png'
 #panel = 'a.jfif'
 
 img = cv2.imread(home)  ## <--  wczytanie zdjęcia 
@@ -36,7 +36,7 @@ def add_p(event, x, y, flags, param):
 
 def calculate(pts):
     temp = [0,0,0,0]
-    print(pts)
+    
     t = (10000,10000)
     for i in pts:
         if i[1]<t[1]:
@@ -68,7 +68,7 @@ def calculate(pts):
     h = max(h1,h2)
 
     ar_vis = float(w)/float(h)
-    print(pts)
+    
     m1 = np.array((pts[0][0],pts[0][1],1)).astype('float32')
     m2 = np.array((pts[1][0],pts[1][1],1)).astype('float32')
     m3 = np.array((pts[2][0],pts[2][1],1)).astype('float32')
@@ -132,8 +132,6 @@ result = float(l)/np.sqrt((d[0][0]-d[1][0])**2+(d[0][1]-d[1][1])**2)
 roof_height = result*H
 roof_width = result*W
 
-
-
 import math
 
 ip1 = math.floor(roof_width / (panel_poziomo+odstep))
@@ -184,6 +182,81 @@ cv2.resize(img, (img.shape[1],img.shape[0]))
 test_6 = cv2.addWeighted(img,1,test_5,-255,0)
 test_7 = cv2.addWeighted(test_6,1, test_5,1,0)
 cv2.imshow('test_7', test_7)
+
+##############################################################################################################################
+
+panel_pionowo, panel_poziomo = panel_poziomo, panel_pionowo
+ip1 = math.floor(roof_width / (panel_poziomo+odstep))
+ip2 = math.floor(roof_height / (panel_pionowo + odstep))
+#r1 = math.floor(roof_width%(panel_poziomo+odstep))
+r2 = math.floor((roof_height%(panel_pionowo+odstep))/(panel_poziomo+odstep))
+r3 = math.floor(roof_width / (panel_pionowo + odstep))
+
+
+img = cv2.imread(home)
+dst = cv2.warpPerspective(img ,M, (W,H))
+x = cv2.imread(panel)
+
+xx, yy = int(panel_poziomo/result), int(panel_pionowo/result)
+
+y = cv2.resize(x, (xx,yy))
+temp = 0
+for i in range(ip2):
+    for j in range(ip1):
+        dst[i*y.shape[0]+i*odstep:i*y.shape[0]+y.shape[0]+i*odstep, j*y.shape[1]+j*odstep:(j+1)*y.shape[1]+j*odstep] = y
+        temp = i*y.shape[0]+y.shape[0]+i*odstep+odstep
+
+y = cv2.rotate(y, cv2.cv2.ROTATE_90_CLOCKWISE)
+
+for i in range(r2):
+    for j in range(r3):
+        dst[i*y.shape[0]+i*odstep+temp : i*y.shape[0]+y.shape[0]+i*odstep+temp , j*y.shape[1]+j*odstep : (j+1)*y.shape[1]+j*odstep] = y
+
+M1 = cv2.getPerspectiveTransform(pts2,pts1)
+test_2 = cv2.warpPerspective(dst , M1, (img.shape[1],img.shape[0]))
+cv2.resize(img, (img.shape[1],img.shape[0]))
+
+test_3 = cv2.addWeighted(img,1,test_2,-255,0)
+test_4 = cv2.addWeighted(test_3,1, test_2,1,0)
+cv2.imshow('test_10', test_4)
+
+##############################################################################################################################
+
+panel_pionowo, panel_poziomo = panel_poziomo, panel_pionowo
+ip1 = math.floor(roof_width / (panel_poziomo+odstep))
+ip2 = math.floor(roof_height / (panel_pionowo + odstep))
+#r1 = math.floor(roof_width%(panel_poziomo+odstep))
+r2 = math.floor((roof_width%(panel_poziomo+odstep))/(panel_pionowo+odstep))
+r3 = math.floor(roof_height/ (panel_poziomo + odstep))
+
+
+img = cv2.imread(home)
+dst = cv2.warpPerspective(img ,M, (W,H))
+x = cv2.imread(panel)
+
+xx, yy = int(panel_poziomo/result), int(panel_pionowo/result)
+
+y = cv2.resize(x, (xx,yy))
+temp = 0
+for i in range(ip2):
+    for j in range(ip1):
+        dst[i*y.shape[0]+i*odstep:i*y.shape[0]+y.shape[0]+i*odstep, j*y.shape[1]+j*odstep:(j+1)*y.shape[1]+j*odstep] = y
+        temp = (j+1)*y.shape[1]+j*odstep+odstep
+
+y = cv2.rotate(y, cv2.cv2.ROTATE_90_CLOCKWISE)
+
+for i in range(r3):
+    for j in range(r2):
+        dst[i*y.shape[0]+i*odstep: i*y.shape[0]+y.shape[0]+i*odstep , j*y.shape[1]+j*odstep+temp : (j+1)*y.shape[1]+j*odstep+temp] = y
+
+M1 = cv2.getPerspectiveTransform(pts2,pts1)
+test_2 = cv2.warpPerspective(dst , M1, (img.shape[1],img.shape[0]))
+cv2.resize(img, (img.shape[1],img.shape[0]))
+
+test_3 = cv2.addWeighted(img,1,test_2,-255,0)
+test_4 = cv2.addWeighted(test_3,1, test_2,1,0)
+cv2.imshow('test_11', test_4)
+
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
