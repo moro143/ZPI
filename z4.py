@@ -2,14 +2,19 @@ import math
 import cv2
 import scipy.spatial.distance
 import numpy as np
+import csv
 
 class Panel:
-    def __init__(self, src, height, width, interspace):
+    def __init__(self, src, height, width, interspace, price, power, name, weight):
         self.src = src
         self.height = height
         self.width = width
         self.interspace = interspace
         self.img = cv2.imread(src)
+        self.price = price
+        self.power = power
+        self.name = name
+        self.weight = weight
 
 class Roof:
     def __init__(self, pts1, pts2, W, H, orginal):
@@ -17,7 +22,7 @@ class Roof:
         self.pts2 = pts2
         self.width = W
         self.height = H
-        self.M = cv2.getPerspectiveTransform(self.pts1, pts2)
+        self.M = cv2.getPerspectiveTransform(self.pts1, self.pts2)
         self.img = cv2.warpPerspective(orginal, self.M, (self.width, self.height))
         self.points = []
         self.cm_px = None
@@ -51,6 +56,8 @@ class Roof:
     def panels_distribution_mix(self, panel, rotate = False):
         panel_width = panel.width/self.cm_px
         panel_height = panel.height/self.cm_px
+        if rotate:
+            panel_width, panel_height = panel_height, panel_width
         ip1 = math.floor(self.width / (panel_width+panel.interspace))
         ip2 = math.floor(self.height / (panel_height+panel.interspace))
         max_panels = ip1*ip2
@@ -59,7 +66,7 @@ class Roof:
             sw = self.width - i*(panel_width+panel.interspace)
             ip11 = math.floor(sw / (panel_height+panel.interspace))
             ip22 = math.floor(self.height / (panel_width+panel.interspace))
-            if ip11*ip22+i*ip2>=max_panels:
+            if ip11*ip22+i*ip2>max_panels:
                 max_panels_list = [[panel, i, ip2, rotate], [panel, ip11, ip22, not rotate]]
         self.list_panels_dist.append(max_panels_list)
 
@@ -67,24 +74,48 @@ class Roof:
         for i in self.list_panels_dist:
             dst = self.img.copy()
             t=0
+            t2=0
+            test = 0
+            test2 = 0
+            c = 0
             for j in i:
-                
                 panel_img = j[0].img.copy()
                 panel_w = j[0].width/self.cm_px
                 panel_h = j[0].height/self.cm_px
+                if c%2==1:
+                    t2 = 0
+                else:
+                    t = 0
                 if j[3] == True:
                     panel_w, panel_h = panel_h, panel_w
                     panel_img = cv2.rotate(panel_img, cv2.cv2.ROTATE_90_CLOCKWISE)
+                    
                 panel_img = cv2.resize(panel_img, (int(panel_w), int(panel_h)))
                 for k in range(j[2]):
                     for l in range(j[1]):
                         s1 = k*panel_img.shape[0]+k*j[0].interspace
                         s2 = l*panel_img.shape[1]+l*j[0].interspace
-                        dst[s1:s1+panel_img.shape[0], s2+t:s2+panel_img.shape[1]+t] = panel_img
+                        dst[s1+t2:s1+panel_img.shape[0]+t2, s2+t:s2+panel_img.shape[1]+t] = panel_img
                         test = s2+panel_img.shape[1]
+                        test2 = s1+panel_img.shape[0]
                 t = test
-                
+                t2 = test2
+                c+=1
             self.roofs_with_panels.append(dst)
+    
+    def print_info(self):
+        for i in self.list_panels_dist:
+            sum_price = 0
+            sum_power = 0
+            sum_weight = 0
+            c = 0
+            for j in i:
+                sum_price += j[2]*j[1]*j[0].price
+                sum_power += j[2]*j[1]*j[0].power
+                sum_weight += j[2]*j[1]*j[0].weight
+                c += j[2]*j[1]
+            n = j[0].name
+            print(f"Panele: {n}, Ilosc: {c}, Cena: {sum_price} zl, Moc: {sum_power} W, Waga: {sum_weight} kg")
 
 
 class Photo:
@@ -193,20 +224,35 @@ class Photo:
             img = cv2.addWeighted(img, 1, roof, 1, 0)
             self.photo_with_panels.append(img)
 
-p = Panel('BLUE.jpg', 195.6, 99.2, 2)
+panels = []
+with open('data.csv') as data:
+    csv_reader = csv.reader(data, delimiter=';')
+    c=0
+    for i in csv_reader:
+        if c!=0:
+            panels.append(Panel('BLUE.jpg', int(int(i[2])/10), int(int(i[3])/10), 2, int(i[5]), int(i[4]), i[1], float(i[6])))
+        c+=1
+panels = panels[1:]
+
+p = Panel('BLUE.jpg', 208, 103, 2, 200, 200, 'Blue', 20)
 x = Photo('home.png')
 x.run()
 x.calculate()
 x.roof.run()
-x.roof.panels_distribution(p)
-x.roof.panels_distribution(p, True)
-x.roof.panels_distribution_mix(p)
+for i in panels:
+    x.roof.panels_distribution(i)
+    x.roof.panels_distribution(i, True)
+    #x.roof.panels_distribution_mix(i)
+    x.roof.panels_distribution_mix(i, True)
+x.roof.print_info()
+
+"""
 x.roof.create_roofs_with_panels()
 x.create_photo_with_panels()
 y=0
 for i in x.photo_with_panels:
     cv2.imshow(str(y), i)
     y+=1
-
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+"""
